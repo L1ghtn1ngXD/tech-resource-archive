@@ -55,7 +55,7 @@
         <div>Also if you want, you can create new issue on GitHub L1ghtn1ngXD/tech-resource-archive if you want to add more software.</div>
     </div>
 
-    <h1>Index of /</h1>
+    <h1 id="directory-title">Index of /</h1>
 
     <table>
         <thead>
@@ -74,14 +74,23 @@
 
     <script>
         const hostParts = window.location.hostname.split('.');
-        const pathParts = window.location.pathname.split('/').filter(Boolean);
+        const rawPathParts = window.location.pathname.split('/').filter(Boolean);
 
         let USERNAME = '';
         let REPO = '';
+        let folderPath = '';
 
         if (hostParts.length >= 3 && hostParts[1] === 'github' && hostParts[2] === 'io') {
             USERNAME = hostParts[0];
-            REPO = pathParts[0] || `${USERNAME}.github.io`;
+            REPO = rawPathParts[0] || `${USERNAME}.github.io`;
+            
+            if (rawPathParts.length > 1) {
+                folderPath = rawPathParts.slice(1).join('/');
+            }
+        }
+
+        if (folderPath) {
+            document.getElementById('directory-title').textContent = `Index of /${folderPath}/`;
         }
 
         if (!USERNAME || !REPO) {
@@ -89,7 +98,7 @@
                 <tr><td colspan="3" style="color: #f87171;">Error: Failed to get files list.</td></tr>
             `;
         } else {
-            const apiUrl = `https://api.github.com/repos/${USERNAME}/${REPO}/contents/`;
+            const apiUrl = `https://api.github.com/repos/${USERNAME}/${REPO}/contents/${folderPath}`;
 
             fetch(apiUrl)
                 .then(response => {
@@ -100,16 +109,9 @@
                     const tbody = document.getElementById('file-list');
                     tbody.innerHTML = '';
 
-                    tbody.innerHTML += `
-                        <tr>
-                            <td><a href="../">../</a></td>
-                            <td>dir</td>
-                            <td>-</td>
-                        </tr>
-                    `;
-
                     files.forEach(file => {
-                        if (file.name === 'index.html') return;
+                        const fileNameLower = file.name.toLowerCase();
+                        if (fileNameLower === 'index.html' || fileNameLower === 'readme.md') return;
 
                         const isDir = file.type === 'dir';
                         const displayName = isDir ? `${file.name}/` : file.name;
@@ -117,7 +119,7 @@
 
                         tbody.innerHTML += `
                             <tr>
-                                <td><a href="${file.path}">${displayName}</a></td>
+                                <td><a href="${file.name}${isDir ? '/' : ''}">${displayName}</a></td>
                                 <td>${file.type}</td>
                                 <td>${size}</td>
                             </tr>

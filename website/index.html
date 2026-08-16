@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Index of /</title>
+    <style>
+        body {
+            font-family: monospace;
+            background-color: #111111;
+            color: #eeeeee;
+            margin: 20px;
+        }
+
+        .motd {
+            border: none;
+            background: none;
+            color: #959595;
+            padding: 0;
+            margin-bottom: 25px;
+            line-height: 1.5;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 8px;
+            border-bottom: 1px solid #333333;
+        }
+
+        a {
+            color: #38bdf8;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .loading {
+            color: #888888;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="motd">
+        <div>Welcome to the Tech Resource Archive!</div>
+        <div>We got many files, apps, drivers and etc for old and new operating systems!</div>
+        <div>Also if you want, you can create new issue on GitHub L1ghtn1ngXD/tech-resource-archive if you want to add more software.</div>
+    </div>
+
+    <h1>Index of /</h1>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Size</th>
+            </tr>
+        </thead>
+        <tbody id="file-list">
+            <tr>
+                <td colspan="3" class="loading">Loading files...</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <script>
+        const hostParts = window.location.hostname.split('.');
+        const pathParts = window.location.pathname.split('/').filter(Boolean);
+
+        let USERNAME = '';
+        let REPO = '';
+
+        if (hostParts.length >= 3 && hostParts[1] === 'github' && hostParts[2] === 'io') {
+            USERNAME = hostParts[0];
+            REPO = pathParts[0] || `${USERNAME}.github.io`;
+        }
+
+        if (!USERNAME || !REPO) {
+            document.getElementById('file-list').innerHTML = `
+                <tr><td colspan="3" style="color: #f87171;">Error: Failed to get files list.</td></tr>
+            `;
+        } else {
+            const apiUrl = `https://api.github.com/repos/${USERNAME}/${REPO}/contents/`;
+
+            fetch(apiUrl)
+                .then(response => {
+                    if (!response.ok) throw new Error('Repository is private or missing.');
+                    return response.json();
+                })
+                .then(files => {
+                    const tbody = document.getElementById('file-list');
+                    tbody.innerHTML = '';
+
+                    tbody.innerHTML += `
+                        <tr>
+                            <td><a href="../">../</a></td>
+                            <td>dir</td>
+                            <td>-</td>
+                        </tr>
+                    `;
+
+                    files.forEach(file => {
+                        if (file.name === 'index.html') return;
+
+                        const isDir = file.type === 'dir';
+                        const displayName = isDir ? `${file.name}/` : file.name;
+                        const size = isDir ? '-' : formatBytes(file.size);
+
+                        tbody.innerHTML += `
+                            <tr>
+                                <td><a href="${file.path}">${displayName}</a></td>
+                                <td>${file.type}</td>
+                                <td>${size}</td>
+                            </tr>
+                        `;
+                    });
+                })
+                .catch(error => {
+                    document.getElementById('file-list').innerHTML = `
+                        <tr><td colspan="3" style="color: #f87171;">Error loading files: Repository may be locked.</td></tr>
+                    `;
+                });
+        }
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+    </script>
+
+</body>
+</html>
